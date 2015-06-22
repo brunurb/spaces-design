@@ -262,10 +262,10 @@ define(function (require, exports) {
             ),
             psSelectionWidth = psSelectionBR.x - psSelectionTL.x,
             psSelectionHeight = psSelectionBR.y - psSelectionTL.y,
-            // The resize rectangles are roughly 10 points radius
-            inset = 10,
+            // The resize rectangles are roughly 12 points radius
+            inset = 12,
             // In case of artboards, we have no rotate, so we can stay within the border
-            outset = artboards ? inset : 25;
+            outset = artboards ? inset : 27;
 
         var insidePolicy = new PointerEventPolicy(adapterUI.policyAction.NEVER_PROPAGATE,
                 adapterOS.eventKind.LEFT_MOUSE_DOWN,
@@ -394,6 +394,8 @@ define(function (require, exports) {
         _toolModalStateChangedHandler = function (event) {
             var modalState = (event.state._value === "enter"),
                 modalPromise = this.flux.actions.tools.changeModalState(modalState);
+
+            this.flux.actions.ui.cloak();
 
             if (event.kind._value === "mouse") {
                 if (!modalState) {

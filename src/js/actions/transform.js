@@ -1062,6 +1062,7 @@ define(function (require, exports) {
         }.bind(this);
 
         descriptor.addListener("transform", _transformHandler);
+        descriptor.addListener("editArtboardEvent", _transformHandler);
         return Promise.resolve();
     };
 

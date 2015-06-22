@@ -41,6 +41,14 @@ define(function (require, exports) {
         EventPolicy = require("js/models/eventpolicy"),
         PointerEventPolicy = EventPolicy.PointerEventPolicy;
 
+    /**
+     * Every time the layer selection / location changes, 
+     * we create a border policy around the selection marquee (resetBorderPolicies)
+     * This allows us to send mouse events to Photoshop for on canvas transforms
+     * We store the policy ID in this variable so we can uninstall the last ones
+     *
+     * @type {number}
+     */
     var _currentTransformPolicyID = null;
         
 
@@ -148,6 +156,14 @@ define(function (require, exports) {
         // Set the appropriate Photoshop tool and tool options
         return adapterPS.endModalToolState(true)
             .bind(this)
+            // Remove the border policy if it's been set at some point
+            .then(function () {
+                if (_currentTransformPolicyID) {
+                    var policyID = _currentTransformPolicyID;
+                    _currentTransformPolicyID = null;
+                    return this.transfer(policy.removePointerPolicies, policyID, false);
+                }
+            })
             .then(function () {
                 var currentTool = toolStore.getCurrentTool();
 
@@ -233,6 +249,11 @@ define(function (require, exports) {
             return Promise.resolve();
         }
 
+        // Photoshop transform controls are either clickable on the corner squares for resizing
+        // or in a 25 point area around them for rotating, to allow mouse clicks only in that area
+        // we first create a policy covering the bigger area (width defined by offset + inset)
+        // that sends all clicks to Photoshop. But to allow selection clicks to go through inside,
+        // we set an inset policy over that other rectangle, creating a "frame" of mouse selection policy
         var psSelectionTL = uiStore.transformCanvasToWindow(
                 selection.left, selection.top
             ),
@@ -265,11 +286,24 @@ define(function (require, exports) {
                     width: psSelectionWidth + outset * 2,
                     height: psSelectionHeight + outset * 2
                 }
+            ),
+            outsideShiftPolicy = new PointerEventPolicy(adapterUI.policyAction.ALWAYS_PROPAGATE,
+                adapterOS.eventKind.LEFT_MOUSE_DOWN,
+                {
+                    shift: true
+                },
+                {
+                    x: psSelectionTL.x - outset,
+                    y: psSelectionTL.y - outset,
+                    width: psSelectionWidth + outset * 2,
+                    height: psSelectionHeight + outset * 2
+                }
             );
 
         var pointerPolicyList = [
             insidePolicy,
-            outsidePolicy
+            outsidePolicy,
+            outsideShiftPolicy
         ];
         
         var removePromise;

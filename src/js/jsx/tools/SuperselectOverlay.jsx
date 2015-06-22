@@ -35,6 +35,7 @@ define(function (require, exports, module) {
     var OS = require("adapter/os");
 
     var system = require("js/util/system"),
+        mathUtil = require("js/util/math"),
         uiUtil = require("js/util/ui");
 
     // Used for debouncing the overlay drawing
@@ -157,6 +158,14 @@ define(function (require, exports, module) {
             }
         },
 
+        /**
+         * Attaches to mouse move events coming from Photoshop
+         * so we can set highlights manually. We have to resort to this
+         * because external mouse move events do not cause :hover states
+         * in DOM elements
+         *
+         * @param {CustomEvent} event EXTERNAL_MOUSE_MOVE event coming from _spaces.OS
+         */
         mouseMoveHandler: function (event) {
             if (this.isMounted()) {
                 this._currentMouseX = event.location[0];
@@ -387,6 +396,9 @@ define(function (require, exports, module) {
             this._currentMouseDown = true;
         },
 
+        /**
+         * Goes through all layer bounds and highlights the top one the cursor is on
+         */
         updateMouseOverHighlights: function () {
             var marquee = this.state.marqueeEnabled,
                 scale = this._scale,
@@ -399,10 +411,10 @@ define(function (require, exports, module) {
             // Yuck, we gotta traverse the list backwards, and D3 doesn't offer reverse iteration
             _.forEachRight(d3.selectAll(".layer-bounds")[0], function (element) {
                 var layer = d3.select(element),
-                    layerLeft = parseInt(layer.attr("x")),
-                    layerTop = parseInt(layer.attr("y")),
-                    layerRight = layerLeft + parseInt(layer.attr("width")),
-                    layerBottom = layerTop + parseInt(layer.attr("height")),
+                    layerLeft = mathUtil.parseNumber(layer.attr("x")),
+                    layerTop = mathUtil.parseNumber(layer.attr("y")),
+                    layerRight = layerLeft + mathUtil.parseNumber(layer.attr("width")),
+                    layerBottom = layerTop + mathUtil.parseNumber(layer.attr("height")),
                     intersects = layerLeft < canvasMouse.x && layerRight > canvasMouse.x &&
                         layerTop < canvasMouse.y && layerBottom > canvasMouse.y;
 
@@ -420,10 +432,10 @@ define(function (require, exports, module) {
             _.forEachRight(d3.selectAll(".artboard-name-rect")[0], function (element) {
                 var layer = d3.select(element),
                     layerID = layer.attr("layer-id"),
-                    layerLeft = parseInt(layer.attr("x")),
-                    layerTop = parseInt(layer.attr("y")),
-                    layerRight = layerLeft + parseInt(layer.attr("width")),
-                    layerBottom = layerTop + parseInt(layer.attr("height")),
+                    layerLeft = mathUtil.parseNumber(layer.attr("x")),
+                    layerTop = mathUtil.parseNumber(layer.attr("y")),
+                    layerRight = layerLeft + mathUtil.parseNumber(layer.attr("width")),
+                    layerBottom = layerTop + mathUtil.parseNumber(layer.attr("height")),
                     intersects = layerLeft < canvasMouse.x && layerRight > canvasMouse.x &&
                         layerTop < canvasMouse.y && layerBottom > canvasMouse.y;
 
@@ -480,17 +492,17 @@ define(function (require, exports, module) {
             
             d3.selectAll(".marqueeable").each(function () {
                 var layer = d3.select(this),
-                    layerLeft = parseInt(layer.attr("x")),
-                    layerTop = parseInt(layer.attr("y")),
-                    layerRight = layerLeft + parseInt(layer.attr("width")),
-                    layerBottom = layerTop + parseInt(layer.attr("height")),
+                    layerLeft = mathUtil.parseNumber(layer.attr("x")),
+                    layerTop = mathUtil.parseNumber(layer.attr("y")),
+                    layerRight = layerLeft + mathUtil.parseNumber(layer.attr("width")),
+                    layerBottom = layerTop + mathUtil.parseNumber(layer.attr("height")),
                     intersects = layerLeft < end.x && layerRight > start.x &&
                         layerTop < end.y && layerBottom > start.y;
 
                 if (intersects) {
                     layer.classed("marquee-hover", true)
                         .style("stroke-width", 1.0 * scale);
-                    highlightedIDs.push(parseInt(layer.attr("layer-id")));
+                    highlightedIDs.push(mathUtil.parseNumber(layer.attr("layer-id")));
                 } else {
                     layer.classed("marquee-hover", false)
                         .style("stroke-width", 0.0);
